@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -48,39 +48,43 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Light theme — Punjab Police–inspired (crest navy / blue-violet, restrained red).
+ * Stays bright and professional; not a 1:1 logo fill.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --background: #f3f4fb;
+  --foreground: #1c1740;
+  --card: #ffffff;
+  --card-foreground: #1c1740;
+  --popover: #ffffff;
+  --popover-foreground: #1c1740;
+  --primary: #393185;
+  --primary-foreground: #fafafa;
+  --secondary: #e8e6f4;
+  --secondary-foreground: #2d2766;
+  --muted: #ebe9f5;
+  --muted-foreground: #5c5694;
+  --accent: #e0ddf5;
+  --accent-foreground: #2d2766;
+  --destructive: #c41e3a;
+  --border: #d4d0e8;
+  --input: #cfcae3;
+  --ring: #7c77ae;
+  --chart-1: #393185;
+  --chart-2: #5c5694;
+  --chart-3: #c41e3a;
+  --chart-4: #7c77ae;
+  --chart-5: #2d2766;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #eeecf8;
+  --sidebar-foreground: #1c1740;
+  --sidebar-primary: #393185;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #e0ddf5;
+  --sidebar-accent-foreground: #2d2766;
+  --sidebar-border: #d4d0e8;
+  --sidebar-ring: #7c77ae;
 }
 
 .dark {
@@ -127,4 +131,37 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Sonner — align with portal palette (avoid default success green). */
+[data-sonner-toast][data-type="success"] {
+  background: color-mix(in oklab, var(--primary) 12%, var(--card)) !important;
+  border-color: color-mix(in oklab, var(--primary) 32%, var(--border)) !important;
+  color: var(--foreground) !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: var(--primary) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: color-mix(in oklab, var(--destructive) 10%, var(--card)) !important;
+  border-color: color-mix(in oklab, var(--destructive) 38%, var(--border)) !important;
+  color: var(--foreground) !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--destructive) !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  background: color-mix(in oklab, var(--primary) 8%, var(--muted)) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  background: var(--popover) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
 }
