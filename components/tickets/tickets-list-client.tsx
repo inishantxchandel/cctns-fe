@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   ChevronLeft,
@@ -25,6 +25,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { SearchableCombobox } from "@/components/ui/searchable-combobox"
 import {
   Sheet,
@@ -53,6 +54,9 @@ import {
 } from "@/lib/date-range"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
+
+const TICKETS_POLL_MS = 10_000
+const TICKETS_FETCH_DEBOUNCE_MS = 320
 import { UserRole } from "@/types/roles"
 import type { ReferenceDropdowns } from "@/types/reference"
 import type { TicketListItem, TicketsListResult } from "@/types/ticket-list"
@@ -337,6 +341,27 @@ export function TicketsListClient() {
   const [result, setResult] = useState<TicketsListResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [pollingEnabled, setPollingEnabled] = useState(true)
+
+  const pollingEnabledRef = useRef(pollingEnabled)
+  const prevPollingEnabledRef = useRef(pollingEnabled)
+  const paramsRef = useRef({
+    page,
+    limit,
+    apiDistrictId: null as string | null | undefined,
+    policeStationId,
+    dateFrom,
+    dateTo,
+    statusFilter,
+    teamFilter,
+  })
+  const pollTimerRef = useRef<number | null>(null)
+  const pollAbortRef = useRef<AbortController | null>(null)
+  const runSilentPollRef = useRef<() => Promise<void>>(async () => {})
+
+  useEffect(() => {
+    pollingEnabledRef.current = pollingEnabled
+  }, [pollingEnabled])
 
   const loadDropdowns = useCallback(async (districtForPs?: string | null) => {
     setDropdownsLoading(true)
@@ -437,40 +462,118 @@ export function TicketsListClient() {
     ? lockedDistrictId
     : districtId || undefined
 
+  paramsRef.current = {
+    page,
+    limit,
+    apiDistrictId,
+    policeStationId,
+    dateFrom,
+    dateTo,
+    statusFilter,
+    teamFilter,
+  }
+
+  const clearPollTimer = useCallback(() => {
+    if (pollTimerRef.current !== null) {
+      clearTimeout(pollTimerRef.current)
+      pollTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleNextPoll = useCallback(() => {
+    clearPollTimer()
+    if (!pollingEnabledRef.current) return
+    pollTimerRef.current = window.setTimeout(() => {
+      pollTimerRef.current = null
+      if (!pollingEnabledRef.current) return
+      void runSilentPollRef.current()
+    }, TICKETS_POLL_MS)
+  }, [clearPollTimer])
+
+  const silentPoll = useCallback(async () => {
+    const ac = new AbortController()
+    pollAbortRef.current = ac
+    const p = paramsRef.current
+    try {
+      const data = await fetchTickets(
+        {
+          page: p.page,
+          limit: p.limit,
+          districtId: p.apiDistrictId ?? null,
+          policeStationId: p.policeStationId || undefined,
+          createdFrom: dateInputToISOStart(p.dateFrom),
+          createdTo: dateInputToISOEnd(p.dateTo),
+          status: p.statusFilter || undefined,
+          teamAssigned: p.teamFilter || undefined,
+        },
+        { signal: ac.signal }
+      )
+      if (!ac.signal.aborted) setResult(data)
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return
+    } finally {
+      if (!ac.signal.aborted && pollingEnabledRef.current) scheduleNextPoll()
+    }
+  }, [scheduleNextPoll])
+
+  useEffect(() => {
+    runSilentPollRef.current = silentPoll
+  }, [silentPoll])
+
+  useEffect(() => {
+    if (!pollingEnabled) {
+      clearPollTimer()
+      pollAbortRef.current?.abort()
+      prevPollingEnabledRef.current = false
+      return
+    }
+    const wasOff = !prevPollingEnabledRef.current
+    prevPollingEnabledRef.current = true
+    if (wasOff) void silentPoll()
+  }, [pollingEnabled, silentPoll, clearPollTimer])
+
   useEffect(() => {
     const ac = new AbortController()
+    pollAbortRef.current?.abort()
+    clearPollTimer()
+
     const t = setTimeout(() => {
       void (async () => {
         setLoading(true)
         try {
+          const p = paramsRef.current
           const data = await fetchTickets(
             {
-              page,
-              limit,
-              districtId: apiDistrictId ?? null,
-              policeStationId: policeStationId || undefined,
-              createdFrom: dateInputToISOStart(dateFrom),
-              createdTo: dateInputToISOEnd(dateTo),
-              status: statusFilter || undefined,
-              teamAssigned: teamFilter || undefined,
+              page: p.page,
+              limit: p.limit,
+              districtId: p.apiDistrictId ?? null,
+              policeStationId: p.policeStationId || undefined,
+              createdFrom: dateInputToISOStart(p.dateFrom),
+              createdTo: dateInputToISOEnd(p.dateTo),
+              status: p.statusFilter || undefined,
+              teamAssigned: p.teamFilter || undefined,
             },
             { signal: ac.signal }
           )
-          setResult(data)
+          if (!ac.signal.aborted) setResult(data)
         } catch (err) {
           if (err instanceof Error && err.name === "AbortError") return
           toast.error(
             err instanceof ApiError ? err.message : "Could not load tickets."
           )
-          setResult(null)
+          if (!ac.signal.aborted) setResult(null)
         } finally {
           if (!ac.signal.aborted) setLoading(false)
+          if (!ac.signal.aborted && pollingEnabledRef.current) scheduleNextPoll()
         }
       })()
-    }, 320)
+    }, TICKETS_FETCH_DEBOUNCE_MS)
+
     return () => {
       clearTimeout(t)
       ac.abort()
+      clearPollTimer()
+      pollAbortRef.current?.abort()
     }
   }, [
     page,
@@ -481,6 +584,8 @@ export function TicketsListClient() {
     teamFilter,
     dateFrom,
     dateTo,
+    clearPollTimer,
+    scheduleNextPoll,
   ])
 
   const districtOptions = dropdowns?.districts ?? []
@@ -613,8 +718,8 @@ export function TicketsListClient() {
       </Card>
 
       <Card className="border-border/80 shadow-sm">
-        <CardHeader className="flex flex-col gap-1 border-b border-border/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <CardHeader className="flex flex-col gap-3 border-b border-border/60 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0 flex-1">
             <CardTitle className="text-base">Results</CardTitle>
             <CardDescription>
               {loading
@@ -623,6 +728,36 @@ export function TicketsListClient() {
                   ? "No tickets match these filters."
                   : `Showing ${fromIdx}–${toIdx} of ${total}`}
             </CardDescription>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 sm:pt-0.5">
+            <Label
+              htmlFor="tickets-auto-refresh"
+              className="text-muted-foreground cursor-pointer font-normal"
+            >
+              Auto-refresh
+            </Label>
+            <button
+              id="tickets-auto-refresh"
+              type="button"
+              role="switch"
+              aria-checked={pollingEnabled}
+              aria-label="Auto-refresh ticket list every 10 seconds"
+              onClick={() => setPollingEnabled((v) => !v)}
+              className={cn(
+                "relative inline-flex h-7 w-11 shrink-0 items-center rounded-full border border-transparent px-0.5 transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                pollingEnabled
+                  ? "bg-primary"
+                  : "bg-muted dark:bg-input/50"
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none block size-5 rounded-full bg-background shadow-sm ring-1 ring-border/60 transition-transform",
+                  pollingEnabled ? "translate-x-5" : "translate-x-0"
+                )}
+                aria-hidden
+              />
+            </button>
           </div>
         </CardHeader>
         <CardContent className="px-0 pt-0">
