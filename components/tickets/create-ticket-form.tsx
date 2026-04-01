@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { SearchableCombobox } from "@/components/ui/searchable-combobox"
 import { Textarea } from "@/components/ui/textarea"
+import { TicketActionSuccessDialog } from "@/components/tickets/ticket-action-success-dialog"
 import { fetchReferenceDropdowns } from "@/lib/api/reference"
 import { createTicket } from "@/lib/api/tickets"
 import { ApiError } from "@/lib/api/errors"
@@ -56,6 +57,9 @@ export function CreateTicketForm() {
   const [policeStationId, setPoliceStationId] = useState<string | null>(null)
 
   const [submitting, setSubmitting] = useState(false)
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
+
+  const formStartRef = useRef<HTMLDivElement>(null)
 
   const loadDropdowns = useCallback(async (districtForPs?: string | null) => {
     setDropdownsLoading(true)
@@ -133,8 +137,14 @@ export function CreateTicketForm() {
         policeStationId,
         issueTypeId,
       })
-      toast.success("Ticket created successfully.")
       await resetAfterSuccess()
+      setSuccessDialogOpen(true)
+      requestAnimationFrame(() => {
+        formStartRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        })
+      })
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Could not create ticket."
@@ -155,7 +165,19 @@ export function CreateTicketForm() {
     dropdownsLoading || !dropdowns || districtInchargeBlocked
 
   return (
-    <Card className="border-border/80 shadow-sm">
+    <>
+      <TicketActionSuccessDialog
+        open={successDialogOpen}
+        onOpenChange={setSuccessDialogOpen}
+        title="Ticket generated"
+        description="Your ticket was created successfully. You can submit another one below."
+      />
+
+      <Card
+        ref={formStartRef}
+        className="border-border/80 shadow-sm"
+        tabIndex={-1}
+      >
       <CardHeader className="border-b border-border/60">
         <CardTitle>New ticket</CardTitle>
         <CardDescription>
@@ -290,5 +312,6 @@ export function CreateTicketForm() {
         </CardFooter>
       </form>
     </Card>
+    </>
   )
 }

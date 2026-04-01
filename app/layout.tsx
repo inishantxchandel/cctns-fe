@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CCTNS Issue Tracking",
+  title: "CCTNS Issue Tracking System",
   description: "Punjab Police CCTNS issue tracking portal",
 };
 

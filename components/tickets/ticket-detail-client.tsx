@@ -204,9 +204,6 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
           <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
             {ticket.title}
           </h1>
-          <p className="font-mono text-xs text-muted-foreground break-all sm:text-sm">
-            {ticket.id}
-          </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {canChangeStatus ? (

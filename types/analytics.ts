@@ -5,6 +5,15 @@ export enum AnalyticsGroupBy {
   MONTH = "month",
 }
 
+/** Max items for “Top N” frequent issues (UI + API query clamp). */
+export const ANALYTICS_TOP_N_MAX = 20
+export const ANALYTICS_TOP_N_MIN = 1
+
+export function clampAnalyticsTopN(n: number): number {
+  const x = Number.isFinite(n) ? n : ANALYTICS_TOP_N_MIN
+  return Math.min(ANALYTICS_TOP_N_MAX, Math.max(ANALYTICS_TOP_N_MIN, x))
+}
+
 export type AnalyticsTrendPoint = {
   period: string
   total: number

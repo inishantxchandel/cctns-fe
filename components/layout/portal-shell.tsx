@@ -60,7 +60,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
 
   if (!authHydrated || !accessToken || !user) {
     return (
-      <div className="flex min-h-full flex-1 items-center justify-center bg-muted/30 text-sm text-muted-foreground">
+      <div className="flex h-dvh w-full items-center justify-center bg-muted/30 text-sm text-muted-foreground">
         Loading…
       </div>
     )
@@ -69,7 +69,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   const items = navItemsForRole(user.role)
 
   return (
-    <div className="flex min-h-full flex-1">
+    <div className="flex h-dvh max-h-dvh min-h-0 w-full flex-1 overflow-hidden">
       {mobileNavOpen ? (
         <button
           type="button"
@@ -82,7 +82,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       <aside
         id="portal-sidebar"
         className={cn(
-          "flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+          "flex h-dvh max-h-dvh min-h-0 w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
           "fixed inset-y-0 left-0 z-50 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0",
           mobileNavOpen
             ? "translate-x-0"
@@ -109,7 +109,10 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             <p className="truncate text-sm font-medium">CCTNS</p>
           </div>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 p-2" aria-label="Main">
+        <nav
+          className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2"
+          aria-label="Main"
+        >
           {items.map((item) => {
             const Icon = item.icon
             const active = isNavActive(pathname, item)
@@ -133,7 +136,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className="flex min-h-full min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-4 md:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-4">
             <Button
@@ -173,7 +176,9 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             Sign out
           </Button>
         </header>
-        <main className="flex-1 bg-muted/30 p-4 md:p-6">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto bg-muted/30 p-4 md:p-6">
+          {children}
+        </main>
       </div>
     </div>
   )

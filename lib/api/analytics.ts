@@ -2,6 +2,7 @@ import { apiFetch } from "@/lib/api/client"
 import { ApiError, getErrorMessageFromBody } from "@/lib/api/errors"
 import {
   AnalyticsGroupBy,
+  clampAnalyticsTopN,
   type AnalyticsDashboardResponse,
 } from "@/types/analytics"
 
@@ -25,7 +26,7 @@ export async function fetchAnalyticsDashboard(
     "groupBy",
     isAnalyticsGroupBy(query.groupBy) ? query.groupBy : AnalyticsGroupBy.MONTH
   )
-  params.set("topN", String(Math.min(50, Math.max(1, query.topN))))
+  params.set("topN", String(clampAnalyticsTopN(query.topN)))
   params.set("from", query.from)
   params.set("to", query.to)
 

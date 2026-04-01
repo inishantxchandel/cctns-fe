@@ -11,9 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { TicketActionSuccessDialog } from "@/components/tickets/ticket-action-success-dialog"
 import { fetchReferenceDropdowns } from "@/lib/api/reference"
 import { patchTicketTeam } from "@/lib/api/tickets"
 import { ApiError } from "@/lib/api/errors"
+import { filterTeamsForTicketUi } from "@/lib/teams-ui"
 import { cn } from "@/lib/utils"
 import type { DropdownOption } from "@/types/reference"
 
@@ -55,6 +57,7 @@ export function TicketTeamSelect({
   onUpdated,
 }: TicketTeamSelectProps) {
   const [patching, setPatching] = useState(false)
+  const [successOpen, setSuccessOpen] = useState(false)
   const [teamOptions, setTeamOptions] = useState<DropdownOption[]>([])
   const [optionsLoading, setOptionsLoading] = useState(true)
 
@@ -62,7 +65,7 @@ export function TicketTeamSelect({
     setOptionsLoading(true)
     try {
       const d = await fetchReferenceDropdowns()
-      setTeamOptions(d.teams)
+      setTeamOptions(filterTeamsForTicketUi(d.teams))
     } catch (e) {
       setTeamOptions([])
       toast.error(
@@ -97,7 +100,7 @@ export function TicketTeamSelect({
     try {
       const resolved = await patchTicketTeam(ticketId, next)
       onUpdated(resolved)
-      toast.success("Team updated")
+      setSuccessOpen(true)
     } catch (e) {
       toast.error(
         e instanceof ApiError
@@ -116,29 +119,37 @@ export function TicketTeamSelect({
   }
 
   return (
-    <Select
-      value={teamAssigned.length > 0 ? teamAssigned : null}
-      onValueChange={(v) => void handleChange(v)}
-      disabled={patching || options.length === 0}
-      items={selectItems}
-    >
-      <SelectTrigger
-        size="sm"
-        className={cn(
-          "min-w-42 max-w-full border-border bg-background font-normal shadow-sm",
-          options.length === 0 && "opacity-80"
-        )}
-        aria-label="Assigned team"
+    <>
+      <TicketActionSuccessDialog
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+        title="Team updated"
+        description="The assigned team was saved successfully."
+      />
+      <Select
+        value={teamAssigned.length > 0 ? teamAssigned : null}
+        onValueChange={(v) => void handleChange(v)}
+        disabled={patching || options.length === 0}
+        items={selectItems}
       >
-        <SelectValue placeholder="Assign team" />
-      </SelectTrigger>
-      <SelectContent align="end" className="min-w-(--anchor-width)">
-        {options.map((opt) => (
-          <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          size="sm"
+          className={cn(
+            "min-w-42 max-w-full border-border bg-background font-normal shadow-sm",
+            options.length === 0 && "opacity-80"
+          )}
+          aria-label="Assigned team"
+        >
+          <SelectValue placeholder="Assign team" />
+        </SelectTrigger>
+        <SelectContent align="end" className="min-w-(--anchor-width)">
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
   )
 }

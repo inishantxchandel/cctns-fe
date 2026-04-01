@@ -86,7 +86,7 @@ export function LoginScreen() {
           Punjab Police
         </p>
         <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-          CCTNS Issue Tracking
+          CCTNS Issue Tracking System
         </h1>
       </div>
 

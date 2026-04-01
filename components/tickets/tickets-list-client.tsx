@@ -52,6 +52,7 @@ import {
   dateInputToISOStart,
   defaultLastSevenDaysRange,
 } from "@/lib/date-range"
+import { filterTeamsForTicketUi } from "@/lib/teams-ui"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 
@@ -591,7 +592,10 @@ export function TicketsListClient() {
   const districtOptions = dropdowns?.districts ?? []
   const policeOptions = dropdowns?.policeStations ?? []
   const statusOptions = dropdowns?.statuses ?? []
-  const teamOptions = dropdowns?.teams ?? []
+  const teamOptions = useMemo(
+    () => filterTeamsForTicketUi(dropdowns?.teams ?? []),
+    [dropdowns?.teams]
+  )
 
   const items = result?.items ?? []
   const total = result?.total ?? 0

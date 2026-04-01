@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TicketActionSuccessDialog } from "@/components/tickets/ticket-action-success-dialog"
 import { patchTicketStatus } from "@/lib/api/tickets"
 import { ApiError } from "@/lib/api/errors"
 import { ticketStatusSelectOptions } from "@/types/ticket-status"
@@ -26,6 +27,7 @@ export function TicketStatusSelect({
   onUpdated,
 }: TicketStatusSelectProps) {
   const [patching, setPatching] = useState(false)
+  const [successOpen, setSuccessOpen] = useState(false)
 
   const options = useMemo(
     () => ticketStatusSelectOptions(status),
@@ -43,7 +45,7 @@ export function TicketStatusSelect({
     try {
       const resolved = await patchTicketStatus(ticketId, next)
       onUpdated(resolved)
-      toast.success("Status updated")
+      setSuccessOpen(true)
     } catch (e) {
       toast.error(
         e instanceof ApiError
@@ -58,26 +60,34 @@ export function TicketStatusSelect({
   }
 
   return (
-    <Select
-      value={status.length > 0 ? status : null}
-      onValueChange={(v) => void handleChange(v)}
-      disabled={patching}
-      items={selectItems}
-    >
-      <SelectTrigger
-        size="sm"
-        className="min-w-42 max-w-full border-border bg-background font-normal shadow-sm"
-        aria-label="Ticket status"
+    <>
+      <TicketActionSuccessDialog
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+        title="Status updated"
+        description="The ticket status was saved successfully."
+      />
+      <Select
+        value={status.length > 0 ? status : null}
+        onValueChange={(v) => void handleChange(v)}
+        disabled={patching}
+        items={selectItems}
       >
-        <SelectValue placeholder="Set status" />
-      </SelectTrigger>
-      <SelectContent align="end" className="min-w-(--anchor-width)">
-        {options.map((opt) => (
-          <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          size="sm"
+          className="min-w-42 max-w-full border-border bg-background font-normal shadow-sm"
+          aria-label="Ticket status"
+        >
+          <SelectValue placeholder="Set status" />
+        </SelectTrigger>
+        <SelectContent align="end" className="min-w-(--anchor-width)">
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
   )
 }

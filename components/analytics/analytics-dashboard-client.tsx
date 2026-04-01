@@ -43,8 +43,13 @@ import {
 } from "@/lib/date-range"
 import { ApiError } from "@/lib/api/errors"
 import { cn } from "@/lib/utils"
-import { AnalyticsGroupBy } from "@/types/analytics"
-import type { AnalyticsDashboardResponse } from "@/types/analytics"
+import {
+  AnalyticsGroupBy,
+  ANALYTICS_TOP_N_MAX,
+  ANALYTICS_TOP_N_MIN,
+  clampAnalyticsTopN,
+  type AnalyticsDashboardResponse,
+} from "@/types/analytics"
 import { TICKET_STATUS_ORDER } from "@/types/ticket-status"
 
 const GROUP_BY_ITEMS: { value: AnalyticsGroupBy; label: string }[] = [
@@ -186,7 +191,7 @@ export function AnalyticsDashboardClient() {
         const res = await fetchAnalyticsDashboard(
           {
             groupBy,
-            topN: Number.isFinite(topN) ? topN : 5,
+            topN: clampAnalyticsTopN(Number.isFinite(topN) ? topN : 5),
             from: dateInputToISOStart(dateFrom),
             to: dateInputToISOEnd(dateTo),
           },
@@ -325,13 +330,18 @@ export function AnalyticsDashboardClient() {
                 <Input
                   id="analytics-topn"
                   type="number"
-                  min={1}
-                  max={50}
+                  min={ANALYTICS_TOP_N_MIN}
+                  max={ANALYTICS_TOP_N_MAX}
                   value={topN}
                   disabled={loading}
-                  onChange={(e) =>
-                    setTopN(Number.parseInt(e.target.value, 10) || 5)
-                  }
+                  onChange={(e) => {
+                    const v = Number.parseInt(e.target.value, 10)
+                    setTopN(
+                      Number.isFinite(v)
+                        ? clampAnalyticsTopN(v)
+                        : 5
+                    )
+                  }}
                 />
               </FieldContent>
             </Field>
@@ -643,7 +653,6 @@ export function AnalyticsDashboardClient() {
                         Team
                       </TableHead>
                       <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right">Resolved</TableHead>
                       {TICKET_STATUS_ORDER.map((st) => (
                         <TableHead
                           key={st}
@@ -658,7 +667,7 @@ export function AnalyticsDashboardClient() {
                     {data.teamPerformance.byTeam.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={3 + TICKET_STATUS_ORDER.length}
+                          colSpan={2 + TICKET_STATUS_ORDER.length}
                           className="text-muted-foreground py-8 text-center text-sm"
                         >
                           No team performance data.
@@ -672,9 +681,6 @@ export function AnalyticsDashboardClient() {
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {row.totalTickets}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {row.resolvedTickets}
                           </TableCell>
                           {TICKET_STATUS_ORDER.map((st) => (
                             <TableCell
